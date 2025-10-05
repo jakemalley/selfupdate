@@ -1,0 +1,14 @@
+This directory contains code derived from the "binarydist" project:
+    https://github.com/kr/binarydist
+
+Original work:
+    Copyright 2012 Keith Rarick
+
+Modifications:
+    Copyright 2025 Jake Malley
+    Portions of this code have been modified for integration with the
+    selfupdate project. These modifications may include updates for Go
+    modules support, merging of all upstream pull requests open at the
+    time of writing.
+    * https://github.com/kr/binarydist/pull/8
+    * https://github.com/kr/binarydist/pull/9

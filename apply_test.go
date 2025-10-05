@@ -11,7 +11,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/jakemalley/selfupdate/internal/binarydist"
+	"github.com/kr/binarydist"
 )
 
 var (
