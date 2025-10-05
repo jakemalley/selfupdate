@@ -10,8 +10,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-
-	"github.com/jakemalley/selfupdate/internal/osext"
 )
 
 var (
@@ -268,7 +266,7 @@ func (o *Options) SetPublicKeyPEM(pembytes []byte) error {
 
 func (o *Options) getPath() (string, error) {
 	if o.TargetPath == "" {
-		return osext.Executable()
+		return os.Executable()
 	} else {
 		return o.TargetPath, nil
 	}
