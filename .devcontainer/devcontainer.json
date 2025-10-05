@@ -1,0 +1,11 @@
+{
+  "name": "dev-go",
+  "image": "dev-go:latest",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "golang.go"
+      ]
+    }
+  }
+}

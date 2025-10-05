@@ -1,4 +1,6 @@
-# go-update: Build self-updating Go programs [![godoc reference](https://godoc.org/github.com/inconshreveable/go-update?status.png)](https://godoc.org/github.com/inconshreveable/go-update)
+# selfupdate: Build self-updating Go programs
+
+*NB*: This is a fork of https://github.com/inconshreveable/go-update
 
 Package update provides functionality to implement secure, self-updating Go programs (or other single-file targets)
 A program can update itself by replacing its executable file with a new version.
@@ -14,7 +16,7 @@ import (
     "fmt"
     "net/http"
 
-    "github.com/inconshreveable/go-update"
+    "github.com/jakemalley/selfupdate"
 )
 
 func doUpdate(url string) error {
