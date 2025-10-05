@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"io"
-	"io/ioutil"
 )
 
 func swap(a []int, i, j int) { a[i], a[j] = a[j], a[i] }
@@ -172,21 +171,19 @@ func search(I []int, obuf, nbuf []byte, st, en int) (pos, n int) {
 	x := st + (en-st)/2
 	if bytes.Compare(obuf[I[x]:], nbuf) < 0 {
 		return search(I, obuf, nbuf, x, en)
-	} else {
-		return search(I, obuf, nbuf, st, x)
 	}
-	panic("unreached")
+	return search(I, obuf, nbuf, st, x)
 }
 
 // Diff computes the difference between old and new, according to the bsdiff
 // algorithm, and writes the result to patch.
 func Diff(old, new io.Reader, patch io.Writer) error {
-	obuf, err := ioutil.ReadAll(old)
+	obuf, err := io.ReadAll(old)
 	if err != nil {
 		return err
 	}
 
-	nbuf, err := ioutil.ReadAll(new)
+	nbuf, err := io.ReadAll(new)
 	if err != nil {
 		return err
 	}
@@ -208,7 +205,7 @@ type BufSufData struct {
 
 // ComputeSuf computes a BufSufData from reader using qsufsort algorithm.
 func ComputeSuf(reader io.Reader) (*BufSufData, error) {
-	buf, err := ioutil.ReadAll(reader)
+	buf, err := io.ReadAll(reader)
 	if err != nil {
 		return nil, err
 	}
@@ -222,7 +219,7 @@ func ComputeSuf(reader io.Reader) (*BufSufData, error) {
 // it optionally takes obufsuf (*BufSufData of old io.Reader) to avoid
 // recreating the suffix array.
 func DiffWithSuf(obufsuf *BufSufData, new io.Reader, patch io.Writer) error {
-	nbuf, err := ioutil.ReadAll(new)
+	nbuf, err := io.ReadAll(new)
 	if err != nil {
 		return err
 	}

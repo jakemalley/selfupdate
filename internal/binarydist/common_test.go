@@ -2,7 +2,6 @@ package binarydist
 
 import (
 	"io"
-	"io/ioutil"
 	"math/rand"
 	"os"
 )
@@ -17,7 +16,7 @@ func mustOpen(path string) *os.File {
 }
 
 func mustReadAll(r io.Reader) []byte {
-	b, err := ioutil.ReadAll(r)
+	b, err := io.ReadAll(r)
 	if err != nil {
 		panic(err)
 	}
@@ -49,12 +48,12 @@ func fileCmp(a, b *os.File) int64 {
 		panic(err)
 	}
 
-	pa, err := ioutil.ReadAll(a)
+	pa, err := io.ReadAll(a)
 	if err != nil {
 		panic(err)
 	}
 
-	pb, err := ioutil.ReadAll(b)
+	pb, err := io.ReadAll(b)
 	if err != nil {
 		panic(err)
 	}
@@ -69,8 +68,9 @@ func fileCmp(a, b *os.File) int64 {
 
 func mustWriteRandFile(path string, size int, seed int64) *os.File {
 	p := make([]byte, size)
-	rand.Seed(seed)
-	_, err := rand.Read(p)
+	// Use a local deterministic random generator
+	r := rand.New(rand.NewSource(seed))
+	_, err := io.ReadFull(r, p) // fills p with pseudo-random bytes
 	if err != nil {
 		panic(err)
 	}
