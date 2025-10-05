@@ -3,69 +3,88 @@ package binarydist
 import (
 	"bytes"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"testing"
 )
 
+// applyPatch is just a wrapper of Patch for testing
+func applyPatch(old io.Reader, new io.Writer, patch io.Reader) error {
+	return Patch(old, new, patch)
+}
+
 func testFunc(t *testing.T, fDiff func(old, new io.Reader, patch io.Writer) error) {
 	t.Helper()
 
 	diffT := []struct {
-		old *os.File
-		new *os.File
+		name string
+		old  *os.File
+		new  *os.File
 	}{
 		{
-			old: mustWriteRandFile("test.old", 1e3, 1),
-			new: mustWriteRandFile("test.new", 1e3, 2),
+			name: "sample data",
+			old:  mustOpen("testdata/sample.old"),
+			new:  mustOpen("testdata/sample.new"),
 		},
 		{
-			old: mustOpen("testdata/sample.old"),
-			new: mustOpen("testdata/sample.new"),
+			name: "random data",
+			old:  mustWriteRandFile("test.old", 1e3, 1),
+			new:  mustWriteRandFile("test.new", 1e3, 2),
 		},
 	}
 
 	for _, s := range diffT {
-		got, err := ioutil.TempFile("/tmp", "bspatch.")
-		if err != nil {
-			panic(err)
-		}
-		os.Remove(got.Name())
+		t.Run(s.name, func(t *testing.T) {
+			// Use bsdiff CLI to generate a patch file (expected patch)
+			exp, err := os.CreateTemp("", "bspatch.")
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer os.Remove(exp.Name())
 
-		exp, err := ioutil.TempFile("/tmp", "bspatch.")
-		if err != nil {
-			panic(err)
-		}
+			cmd := exec.Command("bsdiff", s.old.Name(), s.new.Name(), exp.Name())
+			cmd.Stdout = os.Stdout
+			if err := cmd.Run(); err != nil {
+				t.Fatal(err)
+			}
 
-		cmd := exec.Command("bsdiff", s.old.Name(), s.new.Name(), exp.Name())
-		cmd.Stdout = os.Stdout
-		err = cmd.Run()
-		os.Remove(exp.Name())
-		if err != nil {
-			panic(err)
-		}
+			// Use our `fDiff` implementation to generate a patch (got)
+			got, err := os.CreateTemp("", "bspatch.")
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer os.Remove(got.Name())
 
-		err = fDiff(s.old, s.new, got)
-		if err != nil {
-			t.Fatal("err", err)
-		}
+			if err = fDiff(s.old, s.new, got); err != nil {
+				t.Fatalf("error running diff function: %s", err)
+			}
 
-		_, err = got.Seek(0, 0)
-		if err != nil {
-			panic(err)
-		}
-		gotBuf := mustReadAll(got)
-		expBuf := mustReadAll(exp)
+			// Read in test data old/expected - so we can compare the results of applying the patch
+			oldData := mustReadAll(mustOpen(s.old.Name()))
+			newData := mustReadAll(mustOpen(s.new.Name())) // (the expected result)
 
-		if !bytes.Equal(gotBuf, expBuf) {
-			t.Fail()
-			t.Logf("diff %s %s", s.old.Name(), s.new.Name())
-			t.Logf("%s: len(got) = %d", got.Name(), len(gotBuf))
-			t.Logf("%s: len(exp) = %d", exp.Name(), len(expBuf))
-			i := matchlen(gotBuf, expBuf)
-			t.Logf("produced different output at pos %d; %d != %d", i, gotBuf[i], expBuf[i])
-		}
+			// Apply 'got' patch
+			got.Seek(0, 0)
+			appliedGot := new(bytes.Buffer)
+			if err := applyPatch(bytes.NewReader(oldData), appliedGot, got); err != nil {
+				t.Fatalf("patch apply failed (got): %s", err)
+			}
+
+			// Apply 'exp' patch
+			exp.Seek(0, 0)
+			appliedExp := new(bytes.Buffer)
+			if err := applyPatch(bytes.NewReader(oldData), appliedExp, exp); err != nil {
+				t.Fatalf("patch apply failed (exp): %s", err)
+			}
+
+			// appliedGot / appliedExp and newData should all be equal
+			if !bytes.Equal(appliedExp.Bytes(), newData) {
+				t.Fatalf("expected patch did not reproduce new file")
+			}
+			if !bytes.Equal(appliedGot.Bytes(), newData) {
+				t.Fatalf("our patch did not reproduce new file")
+			}
+		})
 	}
 }
 
