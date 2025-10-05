@@ -1,0 +1,51 @@
+---
+version: "3"
+
+tasks:
+  test-module:
+    desc: Run go test at the module
+    internal: true
+    label: test {{ .TEST_DIR }}
+    cmds:
+      - go test -v -cover -coverprofile .coverage.out ./...
+    sources:
+      - "**/*.go"
+    generates:
+      - .coverage.out
+    dir: "{{ .TEST_DIR }}"
+
+  test:
+    desc: Run go test
+    cmds:
+      - task: test-module
+        vars:
+          TEST_DIR: ./internal/binarydist/
+      - task: test-module
+        vars:
+          TEST_DIR: ./
+
+  cover-module:
+    desc: Run go tool cover at the module
+    internal: true
+    label: cover {{ .COVER_DIR }}
+    cmds:
+      - go tool cover -html=.coverage.out -o coverage.html
+      - go tool cover -func=.coverage.out > coverage.txt
+    sources:
+      - .coverage.out
+    generates:
+      - coverage.html
+      - coverage.txt
+    dir: "{{ .COVER_DIR }}"
+
+  cover:
+    desc: Run go tool cover
+    deps:
+      - test
+    cmds:
+      - task: cover-module
+        vars:
+          COVER_DIR: ./internal/binarydist/
+      - task: cover-module
+        vars:
+          COVER_DIR: ./      
